@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbital Ring Builder</title>
+    <style>
+        body {
+            font-family: monospace;
+            background-color: #fff;
+            color: #000;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.3;
+            font-size: 14px;
+        }
+        h1 {
+            font-size: 1.5em;
+            margin: 10px 0;
+        }
+        .intro {
+            max-width: 800px;
+            text-align: center;
+            font-size: 0.95em;
+            margin-bottom: 20px;
+        }
+        .main-container {
+            width: 100%;
+            max-width: 1400px;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 25px;
+        }
+        .left-column, .center-column, .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .right-column {
+            max-height: 85vh;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        .section {
+            border: 1px solid #000;
+            padding: 12px;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+        }
+        .section h2 {
+            font-size: 1.1em;
+            margin: 0 0 10px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .section-content {
+            font-size: 0.95em;
+        }
+        button {
+            background-color: #fff;
+            color: #000;
+            border: 1px solid #000;
+            padding: 6px 12px;
+            margin: 6px 0;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 0.95em;
+            border-radius: 4px;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        button:hover {
+            background-color: #e0e0e0;
+            transform: scale(1.02);
+        }
+        button:disabled {
+            background-color: #f0f0f0;
+            color: #aaa;
+            cursor: not-allowed;
+            border-color: #ccc;
+            transform: none;
+        }
+        .risk-button {
+            border-color: #d00;
+            color: #d00;
+        }
+        .risk-button:hover {
+            background-color: #ffebee;
+        }
+        .reset-button {
+            border-color: #d00;
+            color: #d00;
+        }
+        .max-button {
+            margin-left: 8px;
+            padding: 4px 8px;
+            font-size: 0.85em;
+        }
+        progress {
+            width: 100%;
+            height: 10px;
+            background-color: #eee;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        progress::-webkit-progress-bar {
+            background-color: #eee;
+            border-radius: 5px;
+        }
+        progress::-webkit-progress-value {
+            background-color: #333;
+            border-radius: 5px;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 240px;
+            background-color: #222;
+            color: #fff;
+            text-align: left;
+            padding: 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 140%;
+            left: -60%;
+            font-size: 0.85em;
+            border-radius: 5px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        #narrative {
+            text-align: left;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+            padding: 12px;
+            border: 1px dashed #000;
+            border-radius: 6px;
+            background-color: #f0f0f0;
+        }
+        #simulation-canvas {
+            margin: 15px 0;
+            border: 1px solid #000;
+            width: 100%;
+            height: 350px;
+            background-color: #000;
+            border-radius: 6px;
+        }
+        .progress-label {
+            font-size: 0.85em;
+            text-align: left;
+            margin-top: 4px;
+            color: #555;
+        }
+        .achievement {
+            font-size: 0.85em;
+            color: #2e7d32;
+            margin-top: 6px;
+            padding: 4px;
+            background-color: #e8f5e9;
+            border-radius: 4px;
+        }
+        .event-message {
+            font-size: 0.85em;
+            color: #1565c0;
+            margin-top: 6px;
+            padding: 4px;
+            background-color: #e3f2fd;
+            border-radius: 4px;
+        }
+        #save-area {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #save-string {
+            width: 100%;
+            height: 100px;
+            font-family: monospace;
+        }
+        #import-string {
+            width: 100%;
+            height: 100px;
+            font-family: monospace;
+        }
+        #choice-section {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        #choice-question {
+            font-weight: bold;
+        }
+        .choice-option {
+            padding: 5px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .choice-option:hover {
+            background-color: #f0f0f0;
+        }
+        #prestige-tree {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .perk-branch {
+            display: flex;
+            gap: 10px;
+        }
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #121212;
+                color: #fff;
+            }
+            .section {
+                border-color: #fff;
+                background-color: #1e1e1e;
+            }
+            .section h2 {
+                border-bottom-color: #333;
+            }
+            button {
+                background-color: #1e1e1e;
+                color: #fff;
+                border-color: #fff;
+            }
+            button:hover {
+                background-color: #333;
+            }
+            button:disabled {
+                color: #666;
+                border-color: #666;
+            }
+            progress::-webkit-progress-bar {
+                background-color: #333;
+            }
+            progress::-webkit-progress-value {
+                background-color: #ddd;
+            }
+            .tooltip .tooltiptext {
+                background-color: #eee;
+                color: #000;
+            }
+            #simulation-canvas {
+                background-color: #000;
+            }
+            #narrative {
+                border-color: #fff;
+                background-color: #1e1e1e;
+            }
+            .achievement {
+                color: #81c784;
+                background-color: #1b5e20;
+            }
+            .event-message {
+                color: #64b5f6;
+                background-color: #0d47a1;
+            }
+        }
+        @media (max-width: 1000px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            .center-column {
+                order: -1;
+            }
+            .right-column {
+                max-height: none;
+                overflow-y: visible;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Orbital Ring Builder</h1>
+    <p class="intro">A simple game about building an orbital ring. Learn facts about this space infrastructure concept while progressing through stages.</p>
+
+    <div class="main-container">
+        <div class="left-column">
+            <div class="section" id="resources">
+                <h2>Resources</h2>
+                <div class="section-content">
+                    <p>Funds: <span id="funds">0</span> USD</p>
+                    <p>Orbital Mass: <span id="mass">0</span> tons</p>
+                    <p>Power: <span id="power">0.2</span> GW</p>
+                    <p>Tech Level: <span id="tech">0</span></p>
+                    <p>Satellite Swarm: <span id="constellation">0</span></p>
+                    <p>Rockets: <span id="vehicles">0</span></p>
+                    <p>Solar Farms: <span id="solar">0</span></p>
+                    <p>Probes: <span id="probes">0</span></p>
+                    <p>Confidence: <span id="confidence">0</span></p>
+                    <p>Ring Core: <span id="loop-progress">0 / 1e5</span> tons (<span id="loop-percent">0%</span>)</p>
+                    <progress id="loop-progress-bar" value="0" max="100000"></progress>
+                    <div class="progress-label">Magnetic rotor mass. Fact: Proposed by Paul Birch in 1982, orbital rings in low-cost designs can start with ~64 tons total mass using aluminum bolts and Zylon tethers.</div>
+                    <p>Ring Network: <span id="system-progress">0 / 5e5</span> tons (<span id="system-percent">0%</span>)</p>
+                    <progress id="system-progress-bar" value="0" max="500000"></progress>
+                    <div class="progress-label">Interlinked precessing rings. Fact: Multiple rings at ~60° inclination provide global coverage, with total mass potentially reaching millions of tons for full systems. Rings rotate faster than orbital speed to provide outward centrifugal force.</div>
+                    <p>Achievements: <span id="achievements">0 / 40</span></p>
+                </div>
+            </div>
+            <div class="section" id="controls">
+                <h2>Game Controls</h2>
+                <div class="section-content">
+                    <button id="save-game">Save Progress</button>
+                    <button id="load-game">Load Progress</button>
+                    <button id="reset-game" class="reset-button">Reset Game (Hold Shift to Confirm)</button>
+                    <button id="export-save">Export Save</button>
+                    <button id="import-save">Import Save</button>
+                    <div id="save-area">
+                        <textarea id="save-string" readonly></textarea>
+                        <button id="copy-save">Copy to Clipboard</button>
+                        <textarea id="import-string" placeholder="Paste save string here"></textarea>
+                        <button id="load-import">Load from String</button>
+                    </div>
+                    <label><input type="checkbox" id="sound-toggle"> Enable Sounds</label>
+                    <label><input type="checkbox" id="auto-buy-toggle"> Enable Auto-Buy</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="center-column">
+            <div id="narrative">Begin by securing seed funding. Fact: Orbital rings could reduce launch costs to ~$1/kg, enabling mass space industrialization similar to oceanic trade routes.</div>
+            <canvas id="simulation-canvas"></canvas>
+            <div id="choice-section">
+                <p id="choice-question"></p>
+                <div id="choice-options"></div>
+                <p id="choice-timer"></p>
+            </div>
+        </div>
+
+        <div class="right-column">
+            <div class="section" id="stage0">
+                <h2>Stage 0: Funding</h2>
+                <div class="section-content">
+                    <p>Goal: $300M to initiate operations and gain investor confidence.</p>
+                    <div class="tooltip">
+                        <button id="raise-capital">Raise Funds (F: 0)</button>
+                        <button id="max-capital" class="max-button">Max</button>
+                        <span class="tooltiptext">+50M USD, +1 confidence (max 10). Fact: Space ventures like Starlink raised billions through prototypes proving feasibility.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="stage1" style="display: none;">
+                <h2>Stage 1: Rockets</h2>
+                <div class="section-content">
+                    <p>Develop reusable rockets for transporting materials to orbit.</p>
+                    <div class="tooltip">
+                        <button id="build-vehicle">Build Rocket (F: 50M, P: 0.01)</button>
+                        <button id="max-vehicle" class="max-button">Max</button>
+                        <span class="tooltiptext">Fact: Falcon 9 costs ~$67M per launch, delivering 22 tons to LEO; rings reduce delta-v needs. Orbital rings allow for active support, unlike passive space elevators requiring ultra-strong materials.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="stage2" style="display: none;">
+                <h2>Stage 2: Satellite Swarm</h2>
+                <div class="section-content">
+                    <p>Deploy satellites for revenue from communications and data.</p>
+                    <div class="tooltip">
+                        <button id="deploy-satellite">Deploy Satellite (F: 0.5M, P: 0.0008, M: 0.26)</button>
+                        <button id="max-satellite" class="max-button">Max</button>
+                        <span class="tooltiptext">Fact: Starlink satellites weigh ~260kg and cost ~$200k-$500k each, using phased arrays for broadband. Small satellites provide some power via solar panels. Orbital rings can be built incrementally.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="stage3" style="display: none;">
+                <h2>Stage 3: R&D</h2>
+                <div class="section-content">
+                    <p>Fund research to unlock automation, efficiencies, and new tech.</p>
+                    <div class="tooltip">
+                        <button id="develop-tech">Research Tech (F: 30M, P: 0.01)</button>
+                        <button id="max-tech" class="max-button">Max</button>
+                        <span class="tooltiptext">Fact: Ion thrusters and superconductors maintain ring stability against perturbations. Potential to launch payloads with minimal energy by accelerating along the ring.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="upgrades" style="display: none;">
+                <h2>Upgrades</h2>
+                <div class="section-content">
+                    <p>Max 5 levels per upgrade. Balance for optimal growth.</p>
+                    <div class="tooltip">
+                        <button id="enhance-constellation">Optimize Swarm (F: 60M, M: 6k, P: 0.01) Lv.0/5</button>
+                        <button id="max-enhSwarm" class="max-button">Max</button>
+                        <span class="tooltiptext">+25% swarm efficiency. Fact: Beamforming boosts throughput, essential for ring relays.</span>
+                    </div>
+                    <div class="tooltip">
+                        <button id="boost-vehicles">Enhance Rockets (F: 200M, M: 20k, P: 0.01) Lv.0/5</button>
+                        <button id="max-boostRockets" class="max-button">Max</button>
+                        <span class="tooltiptext">+35% rocket payload. Fact: Composites achieve 25-35% payload fractions.</span>
+                    </div>
+                    <div class="tooltip">
+                        <button id="refine-mass" style="display: none;">Refine Materials (F: 800M, M: 40k, P: 0.02) Lv.0/5</button>
+                        <button id="max-refMaterials" class="max-button" style="display: none;">Max</button>
+                        <span class="tooltiptext">+25% mass utilization. Fact: Zylon tethers have high strength, used in low-cost ring designs.</span>
+                    </div>
+                    <div class="tooltip">
+                        <button id="enhance-power">Boost Power (F: 1B, M: 50k, P: 0.04) Lv.0/5</button>
+                        <button id="max-enhPower" class="max-button">Max</button>
+                        <span class="tooltiptext">+25% power output. Fact: Superconductors enable zero-loss maglev in rings.</span>
+                    </div>
+                    <div class="tooltip">
+                        <button id="improve-resilience">Improve Resilience (F: 1.2B, M: 60k, P: 0.05) Lv.0/5</button>
+                        <button id="max-impRes" class="max-button">Max</button>
+                        <span class="tooltiptext">-20% risk exposure. Fact: Redundant modules protect against micrometeoroids.</span>
+                    </div>
+                    <div class="tooltip">
+                        <button id="overclock-ring" style="display: none;" class="risk-button">Overclock Ring (F: 1.5B, M: 75k, P: 0.15)</button>
+                        <span class="tooltiptext">x1.5 yields for 60s, increases risk. Fact: Higher rotor speeds boost capacity but increase forces.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="stage4" style="display: none;">
+                <h2>Stage 4: Ring Core</h2>
+                <div class="section-content">
+                    <p>Construct the primary equatorial magnetic ring.</p>
+                    <div class="tooltip">
+                        <button id="assemble-loop">Assemble Segment (F: 500M, M: 50k, P: 0.05)</button>
+                        <button id="max-loop" class="max-button">Max</button>
+                        <span class="tooltiptext">Fact: Rings rotate at ~7.8 km/s, using maglev for frictionless support. Paul Birch's design uses centrifugal force to support the structure, starting with thin rotors.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="stage5" style="display: none;">
+                <h2>Stage 5: Tethers</h2>
+                <div class="section-content">
+                    <p>Deploy tethers for low-cost transit.</p>
+                    <div class="tooltip">
+                        <button id="deploy-skyhook">Deploy Tether (F: 2B, M: 100k, P: 0.50)</button>
+                        <button id="max-skyhook" class="max-button">Max</button>
+                        <span class="tooltiptext">Fact: Tethers use materials like Zylon, exchanging momentum for fuel-free ascent. Skyhooks are geostationary in Birch's ORS, with cables suspended to ground.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="stage6" style="display: none;">
+                <h2>Stage 6: Solar Expansion</h2>
+                <div class="section-content">
+                    <p>Build orbital solar farms for energy.</p>
+                    <div class="tooltip">
+                        <button id="build-solar">Build Solar Farm (F: 500M, M: 25k, P: 0.02)</button>
+                        <button id="max-solar" class="max-button">Max</button>
+                        <span class="tooltiptext">Fact: Orbital solar provides ~1.4 kW/m², 24/7, ~8x terrestrial efficiency.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="stage7" style="display: none;">
+                <h2>Stage 7: Probes</h2>
+                <div class="section-content">
+                    <p>Send probes to asteroids for resources.</p>
+                    <div class="tooltip">
+                        <button id="launch-probe">Launch Probe (F: 300M, M: 10k, P: 0.03)</button>
+                        <button id="max-probe" class="max-button">Max</button>
+                        <span class="tooltiptext">Fact: ISRU on asteroids supplies metals, reducing Earth launches for ring expansion.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="prestige" style="display: none;">
+                <h2>Prestige</h2>
+                <div class="section-content">
+                    <p>Reset for multipliers and perks.</p>
+                    <button id="prestige-reset">Prestige Reset</button>
+                    <div id="prestige-tree" style="display: none;">
+                        <p>Choose perk branch:</p>
+                        <div class="perk-branch">
+                            <button id="perk-economy">Economy Branch</button>
+                            <button id="perk-tech">Tech Branch</button>
+                            <button id="perk-risk">Risk Branch</button>
+                        </div>
+                    </div>
+                    <p>Multiplier: <span id="permanent-multiplier">1.0</span>x</p>
+                    <p>Perks: <span id="perks">None</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const config = {
+            goals: { capital: 3e8, loop: 1e5, system: 5e5 },
+            baseCosts: {
+                capital: { funds: 0 },
+                vehicle: { funds: 5e7, power: 0.01 },
+                satellite: { funds: 5e5, power: 0.0008, mass: 0.26 },
+                tech: { funds: 3e7, power: 0.01 },
+                loop: { funds: 5e8, mass: 5e4, power: 0.05 },
+                skyhook: { funds: 2e9, mass: 1e5, power: 0.5 },
+                solar: { funds: 5e8, mass: 2.5e4, power: 0.02 },
+                probe: { funds: 3e8, mass: 1e4, power: 0.03 },
+                enhSwarm: { funds: 6e7, mass: 6e3, power: 0.01 },
+                boostRockets: { funds: 2e8, mass: 2e4, power: 0.01 },
+                refMaterials: { funds: 8e8, mass: 4e4, power: 0.02 },
+                enhPower: { funds: 1e9, mass: 5e4, power: 0.04 },
+                impRes: { funds: 1.2e9, mass: 6e4, power: 0.05 },
+                overclock: { funds: 1.5e9, mass: 7.5e4, power: 0.15 }
+            },
+            baseYields: {
+                swarmFunds: 1e6 / 12 * 2,
+                swarmMass: 4e3 / 10 * 2,
+                swarmPower: 0.0005,
+                rocketFunds: 2.5e7 / 10 * 2,
+                rocketMass: 2e4 / 10 * 2,
+                loopFunds: 8e11 / 10,
+                loopMass: 1.5e8 / 10,
+                systemFunds: 2.5e12 / 10,
+                systemMass: 4e8 / 10,
+                solarPower: 500 / 10,
+                probeMass: 1e4 / 10
+            },
+            maxEnh: { swarm: 5, rockets: 5, materials: 5, power: 5, resilience: 5 },
+            thresholds: { 
+                reuse: 4, 
+                materials: 5, 
+                autoDeploy: 6,
+                autoBuild: 8, 
+                autoAssemble: 10, 
+                autoUpgrade: 12, 
+                autoSolar: 14, 
+                autoTether: 16, 
+                autoTech: 18, 
+                autoProbe: 20 
+            },
+            narratives: [
+                "Secure initial capital. Fact: Orbital rings democratize space, promoting global equity in access.",
+                "Develop reusable rockets. Fact: Rings negate atmospheric drag, facilitating true reusable spaceflight.",
+                "Build satellite constellation. Fact: Swarms develop assembly tech crucial for ring construction.",
+                "Advance R&D. Fact: High-strength materials like Zylon and carbon nanotubes are key to tether strength.",
+                "Construct ring core. Fact: Maglev tech supports immense masses, outperforming space elevators.",
+                "Install tethers. Fact: Dynamic control systems stabilize against orbital perturbations.",
+                "Expand solar arrays. Fact: Orbital solar offers constant power, ~8x terrestrial efficiency.",
+                "Launch probes. Fact: Asteroid ISRU provides scarce resources, sustaining ring expansion.",
+                "Network achieved! Fact: Completed rings open paths to interplanetary and stellar energy. Orbital rings could provide extra living space for population growth."
+            ],
+            achievements: [
+                { id: 'funds1', desc: 'Raise $100M', condition: () => resources.funds >= 1e8 },
+                { id: 'funds2', desc: 'Raise $300M', condition: () => resources.funds >= 3e8 },
+                { id: 'funds3', desc: 'Reach $1B', condition: () => resources.funds >= 1e9 },
+                { id: 'funds4', desc: 'Reach $10B', condition: () => resources.funds >= 1e10 },
+                { id: 'vehicle1', desc: 'Build 1 Rocket', condition: () => resources.vehicles >= 1 },
+                { id: 'vehicle10', desc: 'Build 10 Rockets', condition: () => resources.vehicles >= 10 },
+                { id: 'vehicle50', desc: 'Build 50 Rockets', condition: () => resources.vehicles >= 50 },
+                { id: 'vehicle100', desc: 'Build 100 Rockets', condition: () => resources.vehicles >= 100 },
+                { id: 'satellite1', desc: 'Deploy 1 Satellite', condition: () => resources.constellation >= 1 },
+                { id: 'satellite100', desc: 'Deploy 100 Satellites', condition: () => resources.constellation >= 100 },
+                { id: 'satellite500', desc: 'Deploy 500 Satellites', condition: () => resources.constellation >= 500 },
+                { id: 'satellite1000', desc: 'Deploy 1000 Satellites', condition: () => resources.constellation >= 1000 },
+                { id: 'tech1', desc: 'Research Tech Level 1', condition: () => resources.tech >= 1 },
+                { id: 'tech10', desc: 'Research Tech Level 10', condition: () => resources.tech >= 10 },
+                { id: 'tech20', desc: 'Research Tech Level 20', condition: () => resources.tech >= 20 },
+                { id: 'tech30', desc: 'Research Tech Level 30', condition: () => resources.tech >= 30 },
+                { id: 'loop10', desc: '10% Ring Core', condition: () => resources.loopProgress >= 0.1 * config.goals.loop },
+                { id: 'loop50', desc: '50% Ring Core', condition: () => resources.loopProgress >= 0.5 * config.goals.loop },
+                { id: 'loop100', desc: 'Complete Ring Core', condition: () => resources.loopProgress >= config.goals.loop },
+                { id: 'system10', desc: '10% Ring Network', condition: () => resources.systemProgress >= 0.1 * config.goals.system },
+                { id: 'system50', desc: '50% Ring Network', condition: () => resources.systemProgress >= 0.5 * config.goals.system },
+                { id: 'system100', desc: 'Complete Ring Network', condition: () => resources.systemProgress >= config.goals.system },
+                { id: 'solar1', desc: 'Build 1 Solar Farm', condition: () => resources.solar >= 1 },
+                { id: 'solar50', desc: 'Build 50 Solar Farms', condition: () => resources.solar >= 50 },
+                { id: 'solar100', desc: 'Build 100 Solar Farms', condition: () => resources.solar >= 100 },
+                { id: 'solar200', desc: 'Build 200 Solar Farms', condition: () => resources.solar >= 200 },
+                { id: 'probe1', desc: 'Launch 1 Probe', condition: () => resources.probes >= 1 },
+                { id: 'probe20', desc: 'Launch 20 Probes', condition: () => resources.probes >= 20 },
+                { id: 'probe50', desc: 'Launch 50 Probes', condition: () => resources.probes >= 50 },
+                { id: 'probe100', desc: 'Launch 100 Probes', condition: () => resources.probes >= 100 },
+                { id: 'enh1', desc: 'Buy 1 Upgrade', condition: () => Object.values(enhancements).reduce((a, b) => a + b, 0) >= 1 },
+                { id: 'enh5', desc: 'Buy 5 Upgrades', condition: () => Object.values(enhancements).reduce((a, b) => a + b, 0) >= 5 },
+                { id: 'enh10', desc: 'Buy 10 Upgrades', condition: () => Object.values(enhancements).reduce((a, b) => a + b, 0) >= 10 },
+                { id: 'enh20', desc: 'Buy 20 Upgrades', condition: () => Object.values(enhancements).reduce((a, b) => a + b, 0) >= 20 },
+                { id: 'power1', desc: 'Reach 1 GW Power', condition: () => resources.power >= 1 },
+                { id: 'power5', desc: 'Reach 5 GW Power', condition: () => resources.power >= 5 },
+                { id: 'power10', desc: 'Reach 10 GW Power', condition: () => resources.power >= 10 },
+                { id: 'power50', desc: 'Reach 50 GW Power', condition: () => resources.power >= 50 },
+                { id: 'mass1', desc: 'Reach 10k tons Mass', condition: () => resources.mass >= 1e4 },
+                { id: 'mass2', desc: 'Reach 100k tons Mass', condition: () => resources.mass >= 1e5 }
+            ],
+            prestigePerks: {
+                economy: [
+                    { id: 'startFunds', desc: 'Start +$100M', threshold: 5 },
+                    { id: 'yieldBoost', desc: '+15% Yields', threshold: 15 },
+                    { id: 'swarmEnh', desc: 'Enhanced Swarm Start', threshold: 35 }
+                ],
+                tech: [
+                    { id: 'startTech', desc: 'Start Tech Lv.3', threshold: 10 },
+                    { id: 'autoStart', desc: 'Early Autos', threshold: 28 },
+                    { id: 'probeEnh', desc: 'Better Probes', threshold: 32 },
+                    { id: 'eventChoice', desc: 'Unlock Event Choices', threshold: 20 }
+                ],
+                risk: [
+                    { id: 'riskReduce', desc: '-20% Risks', threshold: 20 },
+                    { id: 'eventFreq', desc: '+25% Events', threshold: 25 },
+                    { id: 'offlineBoost', desc: '+50% Offline', threshold: 30 },
+                    { id: 'powerSurge', desc: 'Power Boost', threshold: 38 },
+                    { id: 'overclockEnh', desc: 'Overclock Duration +30s', threshold: 15 }
+                ]
+            },
+            events: [
+                { question: "Investor Opportunity: Accept risky funding for immediate boost or safe funding for steady growth?", options: ["Risky (+50% funds, +10% risk)", "Safe (+20% funds)"], bonus: (idx) => {
+                    if (idx === 0) {
+                        resources.funds *= 1.5;
+                        riskModifier += 0.1;
+                    } else {
+                        resources.funds *= 1.2;
+                    }
+                } },
+                { question: "Tech Breakthrough: Focus on mass production or power efficiency?", options: ["Mass (+20% mass yields)", "Power (+20% power yields)"], bonus: (idx) => {
+                    if (idx === 0) {
+                        massBonusMultiplier *= 1.2;
+                    } else {
+                        powerBonusMultiplier *= 1.2;
+                    }
+                } },
+                { question: "Debris Alert: Invest in resilience or accept minor loss?", options: ["Invest (-10% funds, -5% risk)", "Accept (-5% mass)"], bonus: (idx) => {
+                    if (idx === 0) {
+                        resources.funds *= 0.9;
+                        riskModifier -= 0.05;
+                    } else {
+                        resources.mass *= 0.95;
+                    }
+                } },
+                { question: "Government Regulation: Accept subsidies with strings or go independent?", options: ["Accept (+30% funds, +5% risk)", "Independent (-10% funds, +2 tech)"], bonus: (idx) => {
+                    if (idx === 0) {
+                        resources.funds *= 1.3;
+                        riskModifier += 0.05;
+                    } else {
+                        resources.funds *= 0.9;
+                        resources.tech += 2;
+                    }
+                } },
+                { question: "Material Breakthrough: Invest in carbon nanotubes?", options: ["Yes (-20% funds, +20% mass eff)", "No (nothing)"], bonus: (idx) => {
+                    if (idx === 0) {
+                        resources.funds *= 0.8;
+                        massBonusMultiplier *= 1.2;
+                    }
+                } }
+            ]
+        };
+
+        let resources = {
+            funds: 0,
+            mass: 0,
+            power: 0.2,
+            tech: 0,
+            constellation: 0,
+            vehicles: 0,
+            solar: 0,
+            probes: 0,
+            loopProgress: 0,
+            systemProgress: 0,
+            confidence: 0,
+            permanentMultiplier: 1,
+            prestigePerks: [],
+            prestigeBranch: null,
+            lastTime: Date.now(),
+            massBonusMultiplier: 1,
+            powerBonusMultiplier: 1
+        };
+        let unlocks = {
+            reuse: false,
+            materials: false
+        };
+        let enhancements = {
+            swarm: 0,
+            rockets: 0,
+            materials: 0,
+            power: 0,
+            resilience: 0
+        };
+        let thresholdModifier = 0;
+        let tickCount = 0;
+        let lastTick = performance.now();
+        let overclockTicks = 0;
+        let overclockCount = 0;
+        let narrativeIndex = 0;
+        let riskModifier = 1;
+        let achieved = new Set();
+        let offlineEarned = 0;
+        let eventCount = 0;
+        let riskEventsSurvived = 0;
+        let probeBonusCount = 0;
+        let particles = [];
+        let soundsEnabled = false;
+        let stars = [];
+        let eventChoiceUnlocked = false;
+        let overclockDuration = 60;
+        let currentEvent = null;
+        let autoBuyTimer = 0;
+        let autoBuyEnabled = false;
+
+        const canvas = document.getElementById('simulation-canvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        function resizeCanvas() {
+            canvas.width = Math.min(700, window.innerWidth * 0.7);
+            canvas.height = canvas.width * 0.5;
+            canvas.style.width = `${canvas.width}px`;
+            canvas.style.height = `${canvas.height}px`;
+            generateStars();
+        }
+        function generateStars() {
+            stars = [];
+            for (let i = 0; i < 150; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 0.8 + 0.2,
+                    twinkle: Math.random() * 0.5 + 0.5
+                });
+            }
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        let earthRotation = 0;
+        let lastFrame = performance.now();
+
+        class Particle {
+            constructor(x, y, vx, vy, life, color, size = 1, alpha = 1) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.life = life;
+                this.initialLife = life;
+                this.color = color;
+                this.size = size;
+                this.alpha = alpha;
+            }
+            update(delta) {
+                this.x += this.vx * delta;
+                this.y += this.vy * delta;
+                this.life -= delta;
+                this.alpha = this.life / this.initialLife;
+                this.size *= Math.pow(0.98, delta * 60);
+            }
+            draw() {
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function createParticles(x, y, count, color, spread = 2, life = 1.0, alpha = 1) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = (Math.random() * spread + 1) * 30;
+                const size = Math.random() * 1.5 + 0.5;
+                particles.push(new Particle(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, Math.random() * life + 0.5, color, size, alpha));
+            }
+        }
+
+        function animateSim(timestamp) {
+            let delta = (timestamp - lastFrame) / 1000;
+            lastFrame = timestamp;
+            delta = Math.min(delta, 1 / 30);
+
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Twinkling stars
+            stars.forEach(star => {
+                ctx.globalAlpha = star.twinkle + Math.sin(timestamp / 1000 + star.x) * 0.2;
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+
+            const earthR = canvas.height * 0.38;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2 + 25;
+
+            // Earth with rotation
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(earthRotation);
+            ctx.translate(-centerX, -centerY);
+
+            // Blue ocean
+            ctx.fillStyle = '#0d47a1';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, earthR, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+
+            // Atmosphere (not rotated)
+            const gradient = ctx.createRadialGradient(centerX, centerY, earthR, centerX, centerY, earthR + 10);
+            gradient.addColorStop(0, 'rgba(33,150,243,0.3)');
+            gradient.addColorStop(1, 'rgba(33,150,243,0)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, earthR + 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Orbital Ring with glow
+            const ringR = earthR + 60 + (resources.loopProgress / config.goals.loop * 20) + (resources.systemProgress / config.goals.system * 30);
+            const ringTilt = Math.PI / 4;
+            if (resources.loopProgress > 0 || resources.systemProgress > 0) {
+                ctx.strokeStyle = '#9e9e9e';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.ellipse(centerX, centerY + 20, ringR, ringR * Math.cos(ringTilt), 0, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            if (resources.loopProgress > 0) {
+                const progress = resources.loopProgress / config.goals.loop;
+                ctx.strokeStyle = '#fff59d';
+                ctx.lineWidth = 4;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#fff59d';
+                ctx.beginPath();
+                ctx.ellipse(centerX, centerY + 20, ringR, ringR * Math.cos(ringTilt), 0, 0, progress * Math.PI * 2);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            // Satellites with varied orbits
+            const satCount = Math.min(Math.floor(resources.constellation / 50), 20);
+            for (let i = 0; i < satCount; i++) {
+                const orbitR = earthR + 40 + Math.sin(i) * 10; // Varied radius
+                const angle = (tickCount * 0.2 + i * (Math.PI * 2 / satCount)) % (Math.PI * 2);
+                const tilt = 0.8 + Math.cos(i) * 0.1; // Varied tilt
+                const x = centerX + Math.cos(angle) * orbitR;
+                const y = centerY + Math.sin(angle) * orbitR * tilt;
+                ctx.fillStyle = '#2196f3';
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Rockets with improved exhaust
+            const rocketCount = Math.min(Math.floor(resources.vehicles / 3), 10);
+            for (let i = 0; i < rocketCount; i++) {
+                const angle = (tickCount * 0.15 + i * (Math.PI * 2 / rocketCount)) % (Math.PI * 2);
+                const rocketR = earthR + 30;
+                const x = centerX + Math.cos(angle) * rocketR;
+                const y = centerY + Math.sin(angle) * rocketR * 0.8;
+                ctx.fillStyle = '#f44336';
+                ctx.beginPath();
+                ctx.moveTo(x, y - 8);
+                ctx.lineTo(x - 4, y + 8);
+                ctx.lineTo(x + 4, y + 8);
+                ctx.fill();
+
+                // Improved exhaust with gradient
+                const exhaustGradient = ctx.createLinearGradient(x, y + 8, x, y + 20);
+                exhaustGradient.addColorStop(0, '#ffeb3b');
+                exhaustGradient.addColorStop(1, '#f44336');
+                ctx.fillStyle = exhaustGradient;
+                ctx.beginPath();
+                ctx.moveTo(x - 3, y + 8);
+                ctx.lineTo(x, y + 15 + Math.sin(timestamp * 0.0314 + i * 1.57) * 5);
+                ctx.lineTo(x + 3, y + 8);
+                ctx.fill();
+            }
+
+            // Tethers with thickness
+            if (resources.systemProgress > 0) {
+                const tetherCount = 6;
+                ctx.strokeStyle = '#66bb6a';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < tetherCount; i++) {
+                    const angle = i * (Math.PI * 2 / tetherCount) + earthRotation * 0.02; // Slight movement
+                    const startX = centerX + Math.cos(angle) * earthR * 0.9;
+                    const startY = centerY + Math.sin(angle) * earthR * 0.8;
+                    const endX = centerX + Math.cos(angle) * ringR;
+                    const endY = centerY + Math.sin(angle) * ringR * 0.8;
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                }
+            }
+
+            // Solar Farms with rotation
+            const solarCount = Math.min(Math.floor(resources.solar / 5), 15);
+            for (let i = 0; i < solarCount; i++) {
+                const angle = (tickCount * 0.1 + i * (Math.PI * 2 / solarCount)) % (Math.PI * 2);
+                const solarR = ringR + 20;
+                const x = centerX + Math.cos(angle) * solarR;
+                const y = centerY + Math.sin(angle) * solarR * 0.8;
+                ctx.fillStyle = '#ffca28';
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(angle + tickCount * 0.05);
+                ctx.fillRect(-8, -8, 16, 16);
+                ctx.restore();
+            }
+
+            // Particles with alpha fade
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(p => {
+                p.update(delta);
+                p.draw();
+            });
+
+            // Construction particles on ring
+            if (resources.loopProgress > 0 && Math.random() < 0.05) {
+                const angle = Math.random() * Math.PI * 2;
+                const x = centerX + Math.cos(angle) * ringR;
+                const y = centerY + 20 + Math.sin(angle) * ringR * Math.cos(ringTilt);
+                createParticles(x, y, 3, '#ffff00', 1, 0.8, 0.7);
+            }
+            if (resources.systemProgress > 0 && Math.random() < 0.05) {
+                const angle = Math.random() * Math.PI * 2;
+                const x = centerX + Math.cos(angle) * ringR;
+                const y = centerY + 20 + Math.sin(angle) * ringR * Math.cos(ringTilt);
+                createParticles(x, y, 3, '#00ff00', 1, 0.8, 0.7);
+            }
+
+            earthRotation += 0.05 * delta;
+            tickCount += delta;
+
+            requestAnimationFrame(animateSim);
+        }
+        requestAnimationFrame(animateSim);
+
+        const elements = {
+            funds: document.getElementById('funds'),
+            mass: document.getElementById('mass'),
+            power: document.getElementById('power'),
+            tech: document.getElementById('tech'),
+            constellation: document.getElementById('constellation'),
+            vehicles: document.getElementById('vehicles'),
+            solar: document.getElementById('solar'),
+            probes: document.getElementById('probes'),
+            confidence: document.getElementById('confidence'),
+            loopProgress: document.getElementById('loop-progress'),
+            loopPercent: document.getElementById('loop-percent'),
+            loopProgressBar: document.getElementById('loop-progress-bar'),
+            systemProgress: document.getElementById('system-progress'),
+            systemPercent: document.getElementById('system-percent'),
+            systemProgressBar: document.getElementById('system-progress-bar'),
+            achievements: document.getElementById('achievements'),
+            narrative: document.getElementById('narrative'),
+            stage0: document.getElementById('stage0'),
+            stage1: document.getElementById('stage1'),
+            stage2: document.getElementById('stage2'),
+            stage3: document.getElementById('stage3'),
+            stage4: document.getElementById('stage4'),
+            stage5: document.getElementById('stage5'),
+            stage6: document.getElementById('stage6'),
+            stage7: document.getElementById('stage7'),
+            upgrades: document.getElementById('upgrades'),
+            prestige: document.getElementById('prestige'),
+            permanentMultiplier: document.getElementById('permanent-multiplier'),
+            perks: document.getElementById('perks'),
+            raiseCapital: document.getElementById('raise-capital'),
+            maxCapital: document.getElementById('max-capital'),
+            buildVehicle: document.getElementById('build-vehicle'),
+            maxVehicle: document.getElementById('max-vehicle'),
+            deploySatellite: document.getElementById('deploy-satellite'),
+            maxSatellite: document.getElementById('max-satellite'),
+            developTech: document.getElementById('develop-tech'),
+            maxTech: document.getElementById('max-tech'),
+            assembleLoop: document.getElementById('assemble-loop'),
+            maxLoop: document.getElementById('max-loop'),
+            deploySkyhook: document.getElementById('deploy-skyhook'),
+            maxSkyhook: document.getElementById('max-skyhook'),
+            buildSolar: document.getElementById('build-solar'),
+            maxSolar: document.getElementById('max-solar'),
+            launchProbe: document.getElementById('launch-probe'),
+            maxProbe: document.getElementById('max-probe'),
+            enhanceConstellation: document.getElementById('enhance-constellation'),
+            maxEnhSwarm: document.getElementById('max-enhSwarm'),
+            boostVehicles: document.getElementById('boost-vehicles'),
+            maxBoostRockets: document.getElementById('max-boostRockets'),
+            refineMass: document.getElementById('refine-mass'),
+            maxRefMaterials: document.getElementById('max-refMaterials'),
+            enhancePower: document.getElementById('enhance-power'),
+            maxEnhPower: document.getElementById('max-enhPower'),
+            improveResilience: document.getElementById('improve-resilience'),
+            maxImpRes: document.getElementById('max-impRes'),
+            overclockRing: document.getElementById('overclock-ring'),
+            saveGame: document.getElementById('save-game'),
+            loadGame: document.getElementById('load-game'),
+            resetGame: document.getElementById('reset-game'),
+            exportSave: document.getElementById('export-save'),
+            importSave: document.getElementById('import-save'),
+            saveArea: document.getElementById('save-area'),
+            saveString: document.getElementById('save-string'),
+            copySave: document.getElementById('copy-save'),
+            importString: document.getElementById('import-string'),
+            loadImport: document.getElementById('load-import'),
+            prestigeReset: document.getElementById('prestige-reset'),
+            choiceSection: document.getElementById('choice-section'),
+            choiceQuestion: document.getElementById('choice-question'),
+            choiceOptions: document.getElementById('choice-options'),
+            choiceTimer: document.getElementById('choice-timer'),
+            prestigeTree: document.getElementById('prestige-tree'),
+            perkEconomy: document.getElementById('perk-economy'),
+            perkTech: document.getElementById('perk-tech'),
+            perkRisk: document.getElementById('perk-risk'),
+            soundToggle: document.getElementById('sound-toggle'),
+            autoBuyToggle: document.getElementById('auto-buy-toggle')
+        };
+
+        // Comment out sounds since placeholders
+        // const sounds = {
+        //     click: document.getElementById('click-sound'),
+        //     achievement: document.getElementById('achievement-sound'),
+        //     event: document.getElementById('event-sound')
+        // };
+
+        elements.soundToggle.addEventListener('change', (e) => soundsEnabled = e.target.checked);
+        elements.autoBuyToggle.addEventListener('change', (e) => autoBuyEnabled = e.target.checked);
+
+        function playSound(type) {
+            if (soundsEnabled) {
+                // sounds[type].currentTime = 0;
+                // sounds[type].play();
+            }
+        }
+
+        function formatNumber(num) {
+            if (num < 1e3) return num.toFixed(0);
+            if (num < 1e6) return (num / 1e3).toFixed(1) + 'k';
+            if (num < 1e9) return (num / 1e6).toFixed(1) + 'M';
+            if (num < 1e12) return (num / 1e9).toFixed(1) + 'B';
+            return (num / 1e12).toFixed(1) + 'T';
+        }
+
+        function getCost(type, amount = 1) {
+            const base = config.baseCosts[type] || {};
+            const cost = {};
+            for (const key in base) {
+                cost[key] = base[key] * amount;
+            }
+            return cost;
+        }
+
+        function updateNarrative() {
+            elements.narrative.textContent = config.narratives[narrativeIndex];
+        }
+
+        function updateUI() {
+            elements.funds.textContent = formatNumber(resources.funds);
+            elements.mass.textContent = formatNumber(resources.mass);
+            elements.power.textContent = formatNumber(resources.power);
+            elements.tech.textContent = formatNumber(resources.tech);
+            elements.constellation.textContent = formatNumber(resources.constellation);
+            elements.vehicles.textContent = formatNumber(resources.vehicles);
+            elements.solar.textContent = formatNumber(resources.solar);
+            elements.probes.textContent = formatNumber(resources.probes);
+            elements.confidence.textContent = resources.confidence;
+            elements.loopProgress.textContent = formatNumber(resources.loopProgress) + ' / ' + formatNumber(config.goals.loop);
+            elements.loopPercent.textContent = ((resources.loopProgress / config.goals.loop) * 100).toFixed(2) + '%';
+            elements.loopProgressBar.value = resources.loopProgress;
+            elements.systemProgress.textContent = formatNumber(resources.systemProgress) + ' / ' + formatNumber(config.goals.system);
+            elements.systemPercent.textContent = ((resources.systemProgress / config.goals.system) * 100).toFixed(2) + '%';
+            elements.systemProgressBar.value = resources.systemProgress;
+            elements.achievements.textContent = achieved.size + ' / ' + config.achievements.length;
+
+            // Update button disables
+            elements.raiseCapital.disabled = resources.confidence >= 10;
+            elements.maxCapital.disabled = resources.confidence >= 10;
+            elements.enhanceConstellation.disabled = enhancements.swarm >= config.maxEnh.swarm;
+            elements.maxEnhSwarm.disabled = enhancements.swarm >= config.maxEnh.swarm;
+            elements.boostVehicles.disabled = enhancements.rockets >= config.maxEnh.rockets;
+            elements.maxBoostRockets.disabled = enhancements.rockets >= config.maxEnh.rockets;
+            elements.refineMass.disabled = enhancements.materials >= config.maxEnh.materials;
+            elements.maxRefMaterials.disabled = enhancements.materials >= config.maxEnh.materials;
+            elements.enhancePower.disabled = enhancements.power >= config.maxEnh.power;
+            elements.maxEnhPower.disabled = enhancements.power >= config.maxEnh.power;
+            elements.improveResilience.disabled = enhancements.resilience >= config.maxEnh.resilience;
+            elements.maxImpRes.disabled = enhancements.resilience >= config.maxEnh.resilience;
+
+            // Update upgrade button texts
+            elements.enhanceConstellation.textContent = `Optimize Swarm (F: 60M, M: 6k, P: 0.01) Lv.${enhancements.swarm}/5`;
+            elements.boostVehicles.textContent = `Enhance Rockets (F: 200M, M: 20k, P: 0.01) Lv.${enhancements.rockets}/5`;
+            elements.refineMass.textContent = `Refine Materials (F: 800M, M: 40k, P: 0.02) Lv.${enhancements.materials}/5`;
+            elements.enhancePower.textContent = `Boost Power (F: 1B, M: 50k, P: 0.04) Lv.${enhancements.power}/5`;
+            elements.improveResilience.textContent = `Improve Resilience (F: 1.2B, M: 60k, P: 0.05) Lv.${enhancements.resilience}/5`;
+            elements.overclockRing.textContent = `Overclock Ring (F: 1.5B, M: 75k, P: 0.15)`;
+
+            // Show stages and unlocks
+            if (resources.funds >= config.goals.capital) elements.stage1.style.display = 'block';
+            if (resources.vehicles >= 1) elements.stage2.style.display = 'block';
+            if (resources.constellation >= 1) elements.stage3.style.display = 'block';
+            if (resources.tech >= 1) {
+                elements.stage4.style.display = 'block';
+                elements.upgrades.style.display = 'block';
+            }
+            if (resources.loopProgress >= config.goals.loop) elements.stage5.style.display = 'block';
+            if (resources.tech >= 10) elements.stage6.style.display = 'block';
+            if (resources.tech >= 15) elements.stage7.style.display = 'block';
+            if (resources.tech >= config.thresholds.materials + thresholdModifier) {
+                unlocks.materials = true;
+                elements.refineMass.style.display = 'block';
+                elements.maxRefMaterials.style.display = 'block';
+            }
+            if (resources.tech >= 12) elements.overclockRing.style.display = 'block';
+            if (resources.systemProgress >= config.goals.system) {
+                elements.prestige.style.display = 'block';
+                elements.prestigeTree.style.display = 'flex';
+            }
+
+            // Update narrative index
+            if (resources.systemProgress >= config.goals.system) narrativeIndex = 8;
+            else if (resources.probes >= 1) narrativeIndex = 7;
+            else if (resources.solar >= 1) narrativeIndex = 6;
+            else if (resources.systemProgress > 0) narrativeIndex = 5;
+            else if (resources.loopProgress > 0) narrativeIndex = 4;
+            else if (resources.tech > 0) narrativeIndex = 3;
+            else if (resources.constellation > 0) narrativeIndex = 2;
+            else if (resources.vehicles > 0) narrativeIndex = 1;
+            else narrativeIndex = 0;
+            updateNarrative();
+
+            elements.permanentMultiplier.textContent = resources.permanentMultiplier.toFixed(1);
+            elements.perks.textContent = resources.prestigePerks.join(', ') || 'None';
+        }
+
+        function checkAchievements() {
+            config.achievements.forEach(ach => {
+                if (!achieved.has(ach.id) && ach.condition()) {
+                    achieved.add(ach.id);
+                    showNotification(`Achievement Unlocked: ${ach.desc}`, 'achievement');
+                    playSound('achievement');
+                }
+            });
+        }
+
+        function showNotification(msg, className = 'achievement') {
+            const div = document.createElement('div');
+            div.className = className;
+            div.textContent = msg;
+            elements.narrative.appendChild(div);
+            playSound(className === 'achievement' ? 'achievement' : 'event');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const color = className === 'achievement' ? '#ffd700' : '#00bfff';
+            createParticles(centerX, centerY, 20, color, 4, 3.0);
+            setTimeout(() => div.remove(), 8000);
+        }
+
+        function showEvent() {
+            if (currentEvent) return;
+            currentEvent = config.events[Math.floor(Math.random() * config.events.length)];
+            elements.choiceSection.style.display = 'flex';
+            elements.choiceQuestion.textContent = currentEvent.question;
+            elements.choiceOptions.innerHTML = '';
+            currentEvent.options.forEach((opt, idx) => {
+                const div = document.createElement('div');
+                div.className = 'choice-option';
+                div.textContent = opt;
+                div.addEventListener('click', () => handleEventChoice(idx));
+                elements.choiceOptions.appendChild(div);
+            });
+            elements.choiceTimer.textContent = ''; // No timer for events
+        }
+
+        function handleEventChoice(idx) {
+            currentEvent.bonus(idx);
+            showNotification('Event choice applied!');
+            elements.choiceSection.style.display = 'none';
+            currentEvent = null;
+            updateUI();
+        }
+
+        function calculateYields(delta, isOffline = false) {
+            let multiplier = resources.permanentMultiplier * (overclockTicks > 0 && !isOffline ? 1.5 : 1);
+            const swarmEff = 1 + enhancements.swarm * 0.25;
+            const rocketEff = 1 + enhancements.rockets * 0.35;
+            const massEff = (1 + enhancements.materials * 0.25) * resources.massBonusMultiplier;
+            const powerEff = (1 + enhancements.power * 0.25) * resources.powerBonusMultiplier;
+            const probeEff = resources.prestigePerks.includes('probeEnh') ? 1.5 : 1;
+
+            resources.funds += resources.constellation * config.baseYields.swarmFunds * swarmEff * multiplier * delta;
+            resources.mass += resources.constellation * config.baseYields.swarmMass * swarmEff * massEff * multiplier * delta;
+            resources.power += resources.constellation * config.baseYields.swarmPower * swarmEff * powerEff * multiplier * delta;
+            resources.funds += resources.vehicles * config.baseYields.rocketFunds * rocketEff * multiplier * delta;
+            resources.mass += resources.vehicles * config.baseYields.rocketMass * rocketEff * massEff * multiplier * delta;
+            resources.power += resources.solar * config.baseYields.solarPower * powerEff * multiplier * delta;
+            resources.mass += resources.probes * config.baseYields.probeMass * probeEff * massEff * multiplier * delta;
+
+            if (resources.loopProgress > 0) {
+                resources.funds += config.baseYields.loopFunds * (resources.loopProgress / config.goals.loop) * multiplier * delta;
+                resources.mass += config.baseYields.loopMass * (resources.loopProgress / config.goals.loop) * massEff * multiplier * delta;
+            }
+            if (resources.systemProgress > 0) {
+                resources.funds += config.baseYields.systemFunds * (resources.systemProgress / config.goals.system) * multiplier * delta;
+                resources.mass += config.baseYields.systemMass * (resources.systemProgress / config.goals.system) * massEff * multiplier * delta;
+            }
+        }
+
+        function triggerEvent(isRisk = false) {
+            if (isRisk) {
+                const lossPct = Math.random() * 0.2 + 0.05;
+                const fundsLoss = resources.funds * lossPct;
+                const massLoss = resources.mass * lossPct;
+                resources.funds -= fundsLoss;
+                resources.mass -= massLoss;
+                showNotification(`Risk Event: Incident caused loss of ${formatNumber(fundsLoss)} funds and ${formatNumber(massLoss)} mass!`, 'event-message');
+                riskEventsSurvived++;
+            } else {
+                const bonusPct = Math.random() * 0.15 + 0.05;
+                const fundsBonus = resources.funds * bonusPct;
+                const massBonus = resources.mass * bonusPct;
+                resources.funds += fundsBonus;
+                resources.mass += massBonus;
+                showNotification(`Positive Event: Breakthrough granted ${formatNumber(fundsBonus)} funds and ${formatNumber(massBonus)} mass!`, 'event-message');
+                eventCount++;
+            }
+        }
+
+        function gameTick(now) {
+            let delta = (now - lastTick) / 1000;
+            lastTick = now;
+            delta = Math.min(delta, 1 / 30);
+
+            calculateYields(delta);
+
+            autoBuyTimer += delta;
+            if (autoBuyEnabled) {
+                while (autoBuyTimer >= 1) {
+                    autoBuyTimer -= 1;
+                    if (resources.tech >= config.thresholds.autoDeploy + thresholdModifier) buy('satellite', 1, true);
+                    if (resources.tech >= config.thresholds.autoBuild + thresholdModifier) buy('vehicle', 1, true);
+                    if (resources.tech >= config.thresholds.autoAssemble + thresholdModifier) buy('loop', 1, true);
+                    if (resources.tech >= config.thresholds.autoTether + thresholdModifier) buy('skyhook', 1, true);
+                    if (resources.tech >= config.thresholds.autoSolar + thresholdModifier) buy('solar', 1, true);
+                    if (resources.tech >= config.thresholds.autoProbe + thresholdModifier) buy('probe', 1, true);
+                    if (resources.tech >= config.thresholds.autoTech + thresholdModifier) buy('tech', 1, true);
+                    if (resources.tech >= config.thresholds.autoUpgrade + thresholdModifier) {
+                        buyMax('enhSwarm', true);
+                        buyMax('boostRockets', true);
+                        buyMax('refMaterials', true);
+                        buyMax('enhPower', true);
+                        buyMax('impRes', true);
+                    }
+                }
+            }
+
+            if (overclockTicks > 0) overclockTicks -= delta;
+            if (eventChoiceUnlocked && Math.random() < 0.02 * delta) showEvent();
+
+            // Events
+            const eventChance = 0.02 * delta * (resources.prestigePerks.includes('eventFreq') ? 1.25 : 1);
+            if (Math.random() < eventChance) triggerEvent(false);
+            const riskChance = 0.01 * delta * riskModifier;
+            if (Math.random() < riskChance) triggerEvent(true);
+
+            checkAchievements();
+            updateUI();
+
+            requestAnimationFrame(gameTick);
+        }
+
+        function canAfford(type, amount = 1) {
+            const cost = getCost(type, amount);
+            return (!cost.funds || resources.funds >= cost.funds) &&
+                   (!cost.mass || resources.mass >= cost.mass) &&
+                   (!cost.power || resources.power >= cost.power);
+        }
+
+        function buy(type, amount = 1, silent = false) {
+            const cost = getCost(type, amount);
+            if (!canAfford(type, amount)) return 0;
+
+            if (cost.funds) resources.funds -= cost.funds;
+            if (cost.mass) resources.mass -= cost.mass;
+            if (cost.power) resources.power -= cost.power;
+
+            let prevLoop = resources.loopProgress;
+            let prevSystem = resources.systemProgress;
+
+            switch (type) {
+                case 'capital':
+                    resources.funds += 5e7 * amount;
+                    resources.confidence += amount;
+                    break;
+                case 'vehicle':
+                    resources.vehicles += amount;
+                    break;
+                case 'satellite':
+                    resources.constellation += amount;
+                    break;
+                case 'tech':
+                    resources.tech += amount;
+                    break;
+                case 'loop':
+                    resources.loopProgress += 5e4 * amount;
+                    resources.loopProgress = Math.min(resources.loopProgress, config.goals.loop);
+                    if (resources.loopProgress >= config.goals.loop && prevLoop < config.goals.loop) {
+                        createParticles(canvas.width / 2, canvas.height / 2, 50, '#ffff00', 5, 3.0);
+                        showNotification('Ring Core Completed! Unlocking next stage.');
+                    }
+                    break;
+                case 'skyhook':
+                    resources.systemProgress += 1e5 * amount;
+                    resources.systemProgress = Math.min(resources.systemProgress, config.goals.system);
+                    if (resources.systemProgress >= config.goals.system && prevSystem < config.goals.system) {
+                        createParticles(canvas.width / 2, canvas.height / 2, 50, '#00ff00', 5, 3.0);
+                        showNotification('Ring Network Completed! Prestige unlocked.');
+                    }
+                    break;
+                case 'solar':
+                    resources.solar += amount;
+                    break;
+                case 'probe':
+                    resources.probes += amount;
+                    break;
+                case 'enhSwarm':
+                    enhancements.swarm += amount;
+                    break;
+                case 'boostRockets':
+                    enhancements.rockets += amount;
+                    break;
+                case 'refMaterials':
+                    enhancements.materials += amount;
+                    break;
+                case 'enhPower':
+                    enhancements.power += amount;
+                    break;
+                case 'impRes':
+                    enhancements.resilience += amount;
+                    break;
+                case 'overclock':
+                    overclockTicks = overclockDuration;
+                    riskModifier += 0.1;
+                    overclockCount++;
+                    break;
+            }
+
+            if (!silent) {
+                playSound('click');
+                createParticles(canvas.width / 2, canvas.height / 2, 15, '#00ff00', 4, 1.5);
+            }
+            updateUI();
+            return amount;
+        }
+
+        const maxLevelsMap = {
+            enhSwarm: 'swarm',
+            boostRockets: 'rockets',
+            refMaterials: 'materials',
+            enhPower: 'power',
+            impRes: 'resilience'
+        };
+
+        function buyMax(type, silent = false) {
+            const base = config.baseCosts[type] || {};
+            let maxAmount = Infinity;
+
+            if (type === 'capital') {
+                maxAmount = 10 - resources.confidence;
+            } else {
+                if (base.funds) maxAmount = Math.min(maxAmount, Math.floor(resources.funds / base.funds));
+                if (base.mass) maxAmount = Math.min(maxAmount, Math.floor(resources.mass / base.mass));
+                if (base.power) maxAmount = Math.min(maxAmount, Math.floor(resources.power / base.power));
+            }
+
+            if (type in maxLevelsMap) {
+                const enhKey = maxLevelsMap[type];
+                maxAmount = Math.min(maxAmount, config.maxEnh[enhKey] - enhancements[enhKey]);
+            }
+
+            if (maxAmount <= 0 || maxAmount === Infinity) return 0;
+
+            return buy(type, maxAmount, silent);
+        }
+
+        function resetGame(prestige = false) {
+            const oldMultiplier = resources.permanentMultiplier;
+            const oldPerks = resources.prestigePerks;
+            resources = {
+                funds: 0,
+                mass: 0,
+                power: 0.2,
+                tech: 0,
+                constellation: 0,
+                vehicles: 0,
+                solar: 0,
+                probes: 0,
+                loopProgress: 0,
+                systemProgress: 0,
+                confidence: 0,
+                permanentMultiplier: prestige ? oldMultiplier : 1,
+                prestigePerks: prestige ? oldPerks : [],
+                prestigeBranch: prestige ? resources.prestigeBranch : null,
+                lastTime: Date.now(),
+                massBonusMultiplier: 1,
+                powerBonusMultiplier: 1
+            };
+            unlocks = { reuse: false, materials: false };
+            enhancements = { swarm: 0, rockets: 0, materials: 0, power: 0, resilience: 0 };
+            thresholdModifier = 0;
+            achieved = new Set();
+            narrativeIndex = 0;
+            riskModifier = 1;
+            overclockTicks = 0;
+            overclockCount = 0;
+            eventCount = 0;
+            riskEventsSurvived = 0;
+            eventChoiceUnlocked = false;
+            overclockDuration = 60;
+            autoBuyTimer = 0;
+
+            if (prestige) {
+                resources.prestigePerks.forEach(perk => {
+                    switch (perk) {
+                        case 'startFunds': resources.funds += 1e8; break;
+                        case 'yieldBoost': resources.permanentMultiplier *= 1.15; break;
+                        case 'swarmEnh': resources.constellation += 50; break;
+                        case 'startTech': resources.tech += 3; break;
+                        case 'autoStart': thresholdModifier = -5; break;
+                        case 'probeEnh': /* applied in yields */ break;
+                        case 'riskReduce': riskModifier *= 0.8; break;
+                        case 'eventFreq': /* applied in tick */ break;
+                        case 'offlineBoost': /* applied in load */ break;
+                        case 'powerSurge': resources.power += 10; break;
+                        case 'eventChoice': eventChoiceUnlocked = true; break;
+                        case 'overclockEnh': overclockDuration = 90; break;
+                    }
+                });
+            }
+
+            updateNarrative();
+            updateUI();
+            elements.prestigeTree.style.display = 'none';
+        }
+
+        function chooseBranch(branch) {
+            resources.prestigeBranch = branch;
+            resources.permanentMultiplier *= 1.5 + achieved.size * 0.05;
+            resources.prestigePerks = config.prestigePerks[branch].filter(perk => achieved.size >= perk.threshold).map(perk => perk.id);
+            elements.prestigeTree.style.display = 'none';
+            resetGame(true);
+        }
+
+        // Save/load
+        function saveGame() {
+            resources.lastTime = Date.now();
+            localStorage.setItem('orbitalRingSave', JSON.stringify(resources));
+        }
+
+        function loadGame() {
+            const save = localStorage.getItem('orbitalRingSave');
+            if (save) {
+                Object.assign(resources, JSON.parse(save));
+                const now = Date.now();
+                if (resources.lastTime) {
+                    const offlineDelta = (now - resources.lastTime) / 1000;
+                    const offlineFactor = 0.25 * (resources.prestigePerks.includes('offlineBoost') ? 1.5 : 1);
+                    calculateYields(offlineDelta * offlineFactor, true);
+                    showNotification(`Offline progress: Gained ${formatNumber(resources.funds)} funds and more!`);
+                }
+                resources.lastTime = now;
+                updateUI();
+            }
+        }
+
+        elements.saveGame.addEventListener('click', saveGame);
+        elements.loadGame.addEventListener('click', loadGame);
+
+        elements.resetGame.addEventListener('click', (e) => {
+            if (e.shiftKey) resetGame();
+        });
+
+        // Export/import save
+        elements.exportSave.addEventListener('click', () => {
+            elements.saveArea.style.display = 'flex';
+            elements.saveString.value = btoa(JSON.stringify(resources));
+        });
+
+        elements.importSave.addEventListener('click', () => {
+            elements.saveArea.style.display = 'flex';
+        });
+
+        elements.copySave.addEventListener('click', () => {
+            navigator.clipboard.writeText(elements.saveString.value);
+        });
+
+        elements.loadImport.addEventListener('click', () => {
+            try {
+                resources = JSON.parse(atob(elements.importString.value));
+                updateUI();
+            } catch (e) {
+                alert('Invalid save string');
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'f' || e.key === 'F') buy('capital');
+            // Add more as needed
+        });
+
+        // Event listeners for buttons
+        elements.raiseCapital.addEventListener('click', () => buy('capital'));
+        elements.maxCapital.addEventListener('click', () => buyMax('capital'));
+        elements.buildVehicle.addEventListener('click', () => buy('vehicle'));
+        elements.maxVehicle.addEventListener('click', () => buyMax('vehicle'));
+        elements.deploySatellite.addEventListener('click', () => buy('satellite'));
+        elements.maxSatellite.addEventListener('click', () => buyMax('satellite'));
+        elements.developTech.addEventListener('click', () => buy('tech'));
+        elements.maxTech.addEventListener('click', () => buyMax('tech'));
+        elements.assembleLoop.addEventListener('click', () => buy('loop'));
+        elements.maxLoop.addEventListener('click', () => buyMax('loop'));
+        elements.deploySkyhook.addEventListener('click', () => buy('skyhook'));
+        elements.maxSkyhook.addEventListener('click', () => buyMax('skyhook'));
+        elements.buildSolar.addEventListener('click', () => buy('solar'));
+        elements.maxSolar.addEventListener('click', () => buyMax('solar'));
+        elements.launchProbe.addEventListener('click', () => buy('probe'));
+        elements.maxProbe.addEventListener('click', () => buyMax('probe'));
+        elements.enhanceConstellation.addEventListener('click', () => buy('enhSwarm'));
+        elements.maxEnhSwarm.addEventListener('click', () => buyMax('enhSwarm'));
+        elements.boostVehicles.addEventListener('click', () => buy('boostRockets'));
+        elements.maxBoostRockets.addEventListener('click', () => buyMax('boostRockets'));
+        elements.refineMass.addEventListener('click', () => buy('refMaterials'));
+        elements.maxRefMaterials.addEventListener('click', () => buyMax('refMaterials'));
+        elements.enhancePower.addEventListener('click', () => buy('enhPower'));
+        elements.maxEnhPower.addEventListener('click', () => buyMax('enhPower'));
+        elements.improveResilience.addEventListener('click', () => buy('impRes'));
+        elements.maxImpRes.addEventListener('click', () => buyMax('impRes'));
+        elements.overclockRing.addEventListener('click', () => buy('overclock'));
+
+        elements.prestigeReset.addEventListener('click', () => resetGame(true));
+        elements.perkEconomy.addEventListener('click', () => chooseBranch('economy'));
+        elements.perkTech.addEventListener('click', () => chooseBranch('tech'));
+        elements.perkRisk.addEventListener('click', () => chooseBranch('risk'));
+
+        loadGame();
+        requestAnimationFrame(gameTick);
+    </script>
+</body>
+</html>
