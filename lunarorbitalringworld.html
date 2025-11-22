@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunar Orbital Ringworld</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #1a1a1a; }
+        #container { width: 100vw; height: 100vh; }
+        .controls {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px;
+            background: rgba(42, 42, 42, 0.8);
+            border-radius: 8px;
+            color: #eee;
+            font-family: sans-serif;
+            display: flex;
+            gap: 15px;
+            z-index: 10;
+        }
+        button {
+            padding: 8px 16px;
+            background: #444;
+            color: white;
+            border: 1px solid #666;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover { background: #555; }
+        button.active { background: #2d6; color: #111; border-color: #2d6; }
+        .legend {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: #aaa;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    
+    <div class="controls">
+        <button id="toggleSpin" class="active">Pause Rotation</button>
+    </div>
+    
+    <div class="legend">Moon (Gray) | Stator (Outer) | Rotor (Spinning) | <strong>Tethers (Yellow)</strong></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script> 
+
+    <script>
+        // --- CONFIGURATION ---
+        let isSpinning = true;
+        
+        const moonRadius = 2;
+        const rotorRadius = 3;
+        const statorRadius = 3.6;
+        const ringThickness = 0.5;
+        
+        const TETHER_COUNT = 20;
+        const TETHER_COLOR = 0xffff00; 
+
+        // --- SCENE SETUP ---
+        const container = document.getElementById('container');
+        const scene = new THREE.Scene();
+        
+        // Camera positioned to look at the rings face-on, but slightly angled to see depth
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 8); 
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        // --- LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0x404040, 2); 
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        directionalLight.position.set(5, 5, 10);
+        scene.add(directionalLight);
+
+        // --- CONTROLS ---
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // --- OBJECTS ---
+
+        // 1. The Moon
+        const moonGeometry = new THREE.SphereGeometry(moonRadius, 32, 32);
+        const moonMaterial = new THREE.MeshLambertMaterial({ color: 0x888888 });
+        const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+        scene.add(moon);
+
+        // 2. Stator (Outer Ring - Stationary)
+        // Torus lies in X-Y plane by default
+        const statorGeometry = new THREE.TorusGeometry(statorRadius, ringThickness / 2, 12, 100);
+        const statorMaterial = new THREE.MeshLambertMaterial({ color: 0x555555 });
+        const stator = new THREE.Mesh(statorGeometry, statorMaterial);
+        scene.add(stator);
+
+        // 3. Rotor (Inner Ring - Rotating)
+        const rotorGeometry = new THREE.TorusGeometry(rotorRadius, ringThickness / 2, 16, 100);
+        const rotorTexture = createRotorTexture();
+        const rotorMaterial = new THREE.MeshPhongMaterial({ 
+            map: rotorTexture, 
+            shininess: 30 
+        });
+        const rotor = new THREE.Mesh(rotorGeometry, rotorMaterial);
+        scene.add(rotor);
+
+        // Rotor Lights
+        const lightGeometry = new THREE.TorusGeometry(rotorRadius, ringThickness / 2 - 0.1, 8, 100);
+        const lightMaterial = new THREE.MeshBasicMaterial({ color: 0x44ff44, wireframe: true });
+        const habitatLights = new THREE.Mesh(lightGeometry, lightMaterial);
+        rotor.add(habitatLights);
+
+        // 4. Tethers (Corrected Orientation & Rotor Clearance)
+        createTethers();
+
+        function createTethers() {
+            const material = new THREE.LineBasicMaterial({ color: TETHER_COLOR });
+            const angleStep = (Math.PI * 2) / TETHER_COUNT;
+
+            // We want the tethers to bridge *over* the rotor.
+            // We attach them to the Stator (Z=0) and the Moon's "Poles" (Z offset).
+            // This creates a zig-zag pattern (front/back) to avoid the middle ring.
+            
+            const moonZOffset = 1.5; // Vertical offset on the moon (depth)
+            const moonSurfaceRadiusAtOffset = Math.sqrt(Math.pow(moonRadius, 2) - Math.pow(moonZOffset, 2));
+
+            for (let i = 0; i < TETHER_COUNT; i++) {
+                const angle = i * angleStep;
+                
+                // Alternate attaching to the "front" (positive Z) and "back" (negative Z) 
+                // of the moon to create clearance for the rotor.
+                const isEven = i % 2 === 0;
+                const zDir = isEven ? 1 : -1;
+
+                // 1. Point on Stator (Outer Ring) - X/Y Plane, Z=0
+                const statorX = statorRadius * Math.cos(angle);
+                const statorY = statorRadius * Math.sin(angle);
+                const statorZ = 0;
+
+                // 2. Point on Moon (Inner Sphere) - Offset in Z to bypass Rotor
+                const moonX = moonSurfaceRadiusAtOffset * Math.cos(angle);
+                const moonY = moonSurfaceRadiusAtOffset * Math.sin(angle);
+                const moonZ = moonZOffset * zDir;
+
+                const points = [
+                    new THREE.Vector3(moonX, moonY, moonZ),
+                    new THREE.Vector3(statorX, statorY, statorZ)
+                ];
+
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const line = new THREE.Line(geometry, material);
+                scene.add(line);
+            }
+        }
+
+        // --- TEXTURE GENERATOR ---
+        function createRotorTexture() {
+            const size = 128;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#2244AA'; 
+            ctx.fillRect(0, 0, size, size);
+            ctx.fillStyle = '#44FF44'; 
+            for (let i = 0; i < size; i += 16) ctx.fillRect(i, 0, 4, size);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(5, 1);
+            return texture;
+        }
+
+        // --- ANIMATION ---
+        function animate() {
+            requestAnimationFrame(animate);
+            if (isSpinning) {
+                rotor.rotation.z += 0.005; 
+            }
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // --- EVENTS ---
+        document.getElementById('toggleSpin').onclick = function() {
+            isSpinning = !isSpinning;
+            this.classList.toggle('active');
+            this.innerText = isSpinning ? "Pause Rotation" : "Resume Rotation";
+        };
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
